@@ -39,6 +39,17 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
 
+      # Signal 官方 Windows 构建配置包含 Signal Messenger, LLC
+      # 的代码签名证书信息。
+      # 自定义构建没有 Signal 官方证书，因此在构建前移除证书字段。
+      - name: Remove Signal certificate fields
+        shell: cmd
+        run: |
+          copy package.json temp.json
+          del package.json
+          type temp.json | findstr /v certificateSubjectName | findstr /v certificateSha1 > package.json
+          del temp.json
+
       - name: Generate Signal resources
         shell: powershell
         run: |

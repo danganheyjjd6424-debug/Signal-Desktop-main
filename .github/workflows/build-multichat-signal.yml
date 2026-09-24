@@ -1,0 +1,73 @@
+name: Build MultiChat Signal Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24.19.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+          run_install: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Show versions
+        shell: powershell
+        run: |
+          node --version
+          pnpm --version
+          python --version
+
+      - name: Install dependencies
+        shell: powershell
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Generate Signal resources
+        shell: powershell
+        run: |
+          pnpm run generate
+
+      - name: Build production bundles
+        shell: powershell
+        run: |
+          pnpm run build:rolldown:prod
+
+      - name: Build MultiChat Signal x64
+        shell: powershell
+        env:
+          SIGNAL_ENV: production
+        run: |
+          pnpm run build:release -- --x64 --publish=never
+
+      - name: Show release files
+        shell: powershell
+        run: |
+          Get-ChildItem -Path release -Recurse |
+            Select-Object FullName, Length
+
+      - name: Upload MultiChat Signal
+        uses: actions/upload-artifact@v4
+        with:
+          name: MultiChat-Signal-Windows-x64
+          path: |
+            release/*.exe
+            release/*.zip
+            release/win-unpacked/**
+          if-no-files-found: error
